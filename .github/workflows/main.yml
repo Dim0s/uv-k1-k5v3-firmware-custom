@@ -13,19 +13,37 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      run: docker build -t uvk1-uvk5v3 .
-
-    - name: Compile firmware
+    - name: Install ARM toolchain
       run: |
-        docker run --rm \
-          -v ${{ github.workspace }}:/workspace \
-          -w /workspace \
-          uvk1-uvk5v3 \
-          bash -c "./compile-with-docker.sh Fusion"
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          gcc-arm-none-eabi \
+          binutils-arm-none-eabi \
+          libnewlib-arm-none-eabi \
+          build-essential \
+          git
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake --preset Fusion ..
+
+    - name: Build firmware
+      run: |
+        cd build
+        make -j$(nproc)
+
+    - name: List built files
+      run: |
+        echo "=== Built files ==="
+        find build -name "*.bin" -o -name "*.elf" -o -name "*.hex" | while read f; do
+          echo "Found: $f"
+          ls -la "$f"
+        done
 
     - name: Upload firmware artifact
       uses: actions/upload-artifact@v4
@@ -35,3 +53,4 @@ jobs:
           build/Fusion/*.bin
           build/Fusion/*.elf
           build/Fusion/*.hex
+        if-no-files-found: warn
