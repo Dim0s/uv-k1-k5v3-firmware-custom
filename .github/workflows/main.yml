@@ -13,13 +13,41 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Fix compile script
+      run: |
+        sed -i 's/docker run -it/docker run/g' compile-with-docker.sh
+
     - name: Compile firmware
       run: |
         chmod +x compile-with-docker.sh
-        ./compile-with-docker.sh Fusion < /dev/null
+        ./compile-with-docker.sh Fusion
 
-    - name: Upload firmware artifact
+    - name: Debug - find all files
+      run: |
+        echo "=== Содержимое текущей папки ==="
+        ls -la
+        echo ""
+        echo "=== Содержимое папки build ==="
+        ls -laR build/ || echo "Папка build не существует"
+        echo ""
+        echo "=== Поиск всех бинарников ==="
+        find . -type f \( -name "*.bin" -o -name "*.elf" -o -name "*.hex" \) -exec echo "Файл: {}" \; -exec ls -la {} \;
+        echo ""
+        echo "=== Поиск по имени f4hwn ==="
+        find . -name "*f4hwn*" -o -name "*packed*" || echo "Файлы с f4hwn не найдены"
+
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: firmware-artifact
-        path: build/Fusion/f4hwn.packed.bin
+        path: |
+          build/Fusion/*.bin
+          build/Fusion/*.elf
+          build/Fusion/*.hex
+          build/*.bin
+          build/*.elf
+          build/*.hex
+          compiled-firmware/*.bin
+          **/f4hwn.*
+          **/*.packed.bin
+        if-no-files-found: warn
