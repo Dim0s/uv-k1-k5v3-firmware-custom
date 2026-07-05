@@ -4,21 +4,31 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Compile firmware
+    - name: Build Docker image
+      run: docker build -t uvk1-uvk5v3 .
+
+    - name: Compile firmware (без TTY)
       run: |
-        chmod +x compile-with-docker.sh
-        ./compile-with-docker.sh
+        docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          -w /workspace \
+          uvk1-uvk5v3 \
+          bash -c "./compile-with-docker.sh Fusion"
 
     - name: Upload firmware artifact
       uses: actions/upload-artifact@v4
       with:
         name: firmware-artifact
-        path: compiled-firmware/f4hwn.packed.bin
+        path: |
+          build/Fusion/*.bin
+          build/Fusion/*.elf
+          build/Fusion/*.hex
