@@ -13,10 +13,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Build Docker image
       run: docker build -t uvk1-uvk5v3 .
 
-    - name: Compile firmware (без TTY)
+    - name: Compile firmware
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
