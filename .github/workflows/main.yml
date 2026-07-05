@@ -3,54 +3,31 @@ name: Build Firmware
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # 👈 Добавили для ручного запуска
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
+    container:
+      image: docker:latest
+      options: --privileged
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install ARM toolchain
+    - name: Install Docker Compose
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          cmake \
-          gcc-arm-none-eabi \
-          binutils-arm-none-eabi \
-          libnewlib-arm-none-eabi \
-          build-essential \
-          git
+        apk add --no-cache docker-compose
 
-    - name: Create build directory
-      run: mkdir -p build
-
-    - name: Configure CMake
+    - name: Compile firmware
       run: |
-        cd build
-        cmake --preset Fusion ..
-
-    - name: Build firmware
-      run: |
-        cd build
-        make -j$(nproc)
-
-    - name: List built files
-      run: |
-        echo "=== Built files ==="
-        find build -name "*.bin" -o -name "*.elf" -o -name "*.hex" | while read f; do
-          echo "Found: $f"
-          ls -la "$f"
-        done
+        chmod +x compile-with-docker.sh
+        ./compile-with-docker.sh Fusion
 
     - name: Upload firmware artifact
       uses: actions/upload-artifact@v4
       with:
         name: firmware-artifact
-        path: |
-          build/Fusion/*.bin
-          build/Fusion/*.elf
-          build/Fusion/*.hex
-        if-no-files-found: warn
+        path: build/Fusion/*.bin
